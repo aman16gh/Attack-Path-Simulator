@@ -2,6 +2,20 @@ from sqlalchemy import Column, Integer, String, Float, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 from database import Base
 
+class Vulnerability(Base):
+    __tablename__ = "vulnerabilities"
+    id = Column(Integer, primary_key=True, index=True)
+    cve_id = Column(String, unique=True, index=True)
+    description = Column(String)
+    cvss_score = Column(Float)
+    attack_vector = Column(String)
+    attack_complexity = Column(String)
+    privilege_required = Column(String)
+    user_interaction = Column(String)
+    mitre_technique_id = Column(String, nullable=True)
+    preconditions = Column(JSON)
+    postconditions = Column(JSON)
+
 class Asset(Base):
     __tablename__ = "assets"
     id = Column(Integer, primary_key=True, index=True)

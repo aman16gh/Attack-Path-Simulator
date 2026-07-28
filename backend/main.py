@@ -4,6 +4,7 @@ from database import engine, Base, SessionLocal
 from models import Asset, Edge
 from schemas import AssetCreate, EdgeCreate, PathResult
 from graph_engine import find_shortest_path, get_critical_nodes
+from attack_graph_builder import build_exploit_edges
 
 # Create tables if they don't exist (safe to call every time)
 Base.metadata.create_all(bind=engine)
@@ -38,7 +39,6 @@ def list_assets(db: Session = Depends(get_db)):
 # ---------- Edge CRUD ----------
 @app.post("/edges")
 def create_edge(edge: EdgeCreate, db: Session = Depends(get_db)):
-    # Ensure both assets exist
     src = db.query(Asset).filter(Asset.id == edge.source_id).first()
     tgt = db.query(Asset).filter(Asset.id == edge.target_id).first()
     if not src or not tgt:
@@ -67,6 +67,12 @@ def attack_path(source: str, target: str, db: Session = Depends(get_db)):
 @app.get("/critical-nodes")
 def critical_nodes(db: Session = Depends(get_db), limit: int = 5):
     return get_critical_nodes(db, top_n=limit)
+
+# ---------- Attack Graph Expansion ----------
+@app.post("/graph/build")
+def build_graph(db: Session = Depends(get_db)):
+    build_exploit_edges(db)
+    return {"message": "Attack graph expanded with exploit edges."}
 
 # ---------- Root test ----------
 @app.get("/")
