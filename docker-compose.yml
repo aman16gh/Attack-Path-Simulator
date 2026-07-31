@@ -1,4 +1,4 @@
-version: '3.8'
+
 services:
   db:
     image: postgres:15
@@ -11,5 +11,27 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: attack_sim_backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/attack_sim
+      GEMINI_API_KEY: ${GEMINI_API_KEY}   # from your .env file
+    # Optional: wait for db to be ready (add a script or use restart: on-failure)
+    restart: on-failure
+
+  frontend:
+    build: ./frontend
+    container_name: attack_sim_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
 volumes:
   pgdata:

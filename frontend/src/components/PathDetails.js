@@ -1,7 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
+import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
 
 const PathDetails = ({ pathResult }) => {
+  const [report, setReport] = useState('');
+  const [loading, setLoading] = useState(false);
+
   if (!pathResult) return <div style={{ padding: 10 }}>Click nodes and "Find Attack Path"</div>;
+
+  const generateReport = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.post('/report', pathResult);
+      setReport(res.data.report);
+    } catch (err) {
+      alert('Failed to generate report: ' + (err.response?.data?.detail || err.message));
+    }
+    setLoading(false);
+  };
 
   return (
     <div style={{ padding: 15, background: '#f4f4f4', borderLeft: '2px solid #ccc', overflowY: 'auto', maxHeight: '100%' }}>
@@ -24,6 +40,37 @@ const PathDetails = ({ pathResult }) => {
           )}
         </div>
       ))}
+
+      <button
+        onClick={generateReport}
+        disabled={loading}
+        style={{
+          marginTop: 10,
+          padding: '8px 16px',
+          background: '#0d6efd',
+          color: 'white',
+          border: 'none',
+          borderRadius: 4,
+          cursor: 'pointer'
+        }}
+      >
+        {loading ? 'Generating...' : 'Generate AI Report'}
+      </button>
+
+      {report && (
+        <div style={{
+          marginTop: 15,
+          padding: 10,
+          background: 'white',
+          borderRadius: 5,
+          border: '1px solid #ccc',
+          maxHeight: '60vh',
+          overflowY: 'auto'
+        }}>
+          <h4>AI-Generated Report</h4>
+          <ReactMarkdown>{report}</ReactMarkdown>
+        </div>
+      )}
     </div>
   );
 };

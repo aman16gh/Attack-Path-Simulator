@@ -1,10 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import engine, Base, SessionLocal
-from models import Asset, Edge
+from models import Asset, Edge, Vulnerability
 from schemas import AssetCreate, EdgeCreate, PathResult
 from graph_engine import find_shortest_path, get_critical_nodes
 from attack_graph_builder import build_exploit_edges
+from report_generator import generate_attack_report
 
 # Create tables if they don't exist (safe to call every time)
 Base.metadata.create_all(bind=engine)
@@ -22,7 +23,6 @@ def get_db():
 # ---------- Asset CRUD ----------
 @app.post("/assets")
 def create_asset(asset: AssetCreate, db: Session = Depends(get_db)):
-    # Check if name already exists
     if db.query(Asset).filter(Asset.name == asset.name).first():
         raise HTTPException(status_code=400, detail="Asset name already exists")
     db_asset = Asset(**asset.dict())
@@ -68,13 +68,20 @@ def attack_path(source: str, target: str, db: Session = Depends(get_db)):
 def critical_nodes(db: Session = Depends(get_db), limit: int = 5):
     return get_critical_nodes(db, top_n=limit)
 
-# ---------- Attack Graph Expansion ----------
+# ---------- Graph Expansion (Auto-generate exploit edges) ----------
 @app.post("/graph/build")
 def build_graph(db: Session = Depends(get_db)):
     build_exploit_edges(db)
     return {"message": "Attack graph expanded with exploit edges."}
 
-# ---------- Root test ----------
+# ---------- AI Report ----------
+@app.post("/report")
+def create_report(path_result: PathResult):
+    """Generate a detailed security report for a given attack path."""
+    report_md = generate_attack_report(path_result.dict())
+    return {"report": report_md}
+
+# ---------- Root ----------
 @app.get("/")
 def root():
     return {"message": "API is running"}
