@@ -1,21 +1,11 @@
-services:
-  # PostgreSQL database
-  - type: pserv
-    name: db
-    runtime: image
-    image: postgres:15
-    envVars:
-      - key: POSTGRES_USER
-        value: postgres
-      - key: POSTGRES_PASSWORD
-        value: postgres
-      - key: POSTGRES_DB
-        value: attack_sim
-    disk:
-      name: pgdata
-      mountPath: /var/lib/postgresql/data
-      sizeGB: 1   # small size for demo
+databases:
+  - name: db
+    plan: free
+    databaseName: attack_sim
+    user: postgres
+    password: postgres   # simple for demo
 
+services:
   # Backend API (FastAPI)
   - type: web
     name: backend
@@ -26,12 +16,11 @@ services:
     dockerfilePath: ./Dockerfile
     envVars:
       - key: DATABASE_URL
-        fromService:
-          type: pserv
+        fromDatabase:
           name: db
-          property: connectionString   # Render auto‑generates this
+          property: connectionString
       - key: GEMINI_API_KEY
-        sync: false   # we'll set this manually after creation
+        sync: false   # set manually in Render dashboard
 
   # Frontend (React + Nginx)
   - type: web
@@ -43,4 +32,4 @@ services:
     dockerfilePath: ./Dockerfile
     envVars:
       - key: BACKEND_URL
-        value: http://backend:8000    # internal Render DNS
+        value: http://backend:8000   # not strictly needed but harmless
