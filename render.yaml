@@ -1,0 +1,46 @@
+services:
+  # PostgreSQL database
+  - type: pserv
+    name: db
+    runtime: image
+    image: postgres:15
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        value: postgres
+      - key: POSTGRES_DB
+        value: attack_sim
+    disk:
+      name: pgdata
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1   # small size for demo
+
+  # Backend API (FastAPI)
+  - type: web
+    name: backend
+    runtime: docker
+    repo: https://github.com/aman16gh/Attack-Path-Simulator.git
+    branch: master
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: db
+          property: connectionString   # Render auto‑generates this
+      - key: GEMINI_API_KEY
+        sync: false   # we'll set this manually after creation
+
+  # Frontend (React + Nginx)
+  - type: web
+    name: frontend
+    runtime: docker
+    repo: https://github.com/aman16gh/Attack-Path-Simulator.git
+    branch: master
+    rootDir: frontend
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: BACKEND_URL
+        value: http://backend:8000    # internal Render DNS
