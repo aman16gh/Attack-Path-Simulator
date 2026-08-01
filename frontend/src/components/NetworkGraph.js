@@ -14,7 +14,7 @@ const NetworkGraph = ({ onPathResult }) => {
   const [selectedSource, setSelectedSource] = useState(null);
   const [selectedTarget, setSelectedTarget] = useState(null);
 
-  // Load graph from backend
+  // Fetch initial graph data
   useEffect(() => {
     loadGraph();
   }, []);
@@ -61,31 +61,37 @@ const NetworkGraph = ({ onPathResult }) => {
       setEdges(flowEdges);
     } catch (err) {
       console.error('Failed to load graph:', err);
+      alert('Failed to load graph from backend. Is the API running?');
     }
   };
 
   // Handle node click to select source or target
-  const onNodeClick = useCallback((event, node) => {
-    if (!selectedSource) {
-      setSelectedSource(node.id);
-    } else if (!selectedTarget && node.id !== selectedSource) {
-      setSelectedTarget(node.id);
-    }
-  }, [selectedSource, selectedTarget]);
+  const onNodeClick = useCallback(
+    (event, node) => {
+      if (!selectedSource) {
+        setSelectedSource(node.id);
+        event.target.style.background = '#aaf';
+      } else if (!selectedTarget && node.id !== selectedSource) {
+        setSelectedTarget(node.id);
+        event.target.style.background = '#faa';
+      }
+    },
+    [selectedSource, selectedTarget]
+  );
 
-  // Reset selections and clear highlights
+  // Reset selection and highlights
   const resetSelection = () => {
     setSelectedSource(null);
     setSelectedTarget(null);
-    // Reset all node/edge styles to default
-    setNodes(nds =>
-      nds.map(n => ({
+    // Reset node styles
+    setNodes((nds) =>
+      nds.map((n) => ({
         ...n,
         style: { ...n.style, background: '#f0f0f0' },
       }))
     );
-    setEdges(eds =>
-      eds.map(e => ({
+    setEdges((eds) =>
+      eds.map((e) => ({
         ...e,
         animated: false,
         style: { ...e.style, stroke: '#555' },
@@ -93,15 +99,15 @@ const NetworkGraph = ({ onPathResult }) => {
     );
   };
 
-  // Find attack path from selected source to target
+  // Find attack path
   const findPath = async () => {
     if (!selectedSource || !selectedTarget) {
       alert('Click a source node, then a target node.');
       return;
     }
 
-    const sourceNode = nodes.find(n => n.id === selectedSource);
-    const targetNode = nodes.find(n => n.id === selectedTarget);
+    const sourceNode = nodes.find((n) => n.id === selectedSource);
+    const targetNode = nodes.find((n) => n.id === selectedTarget);
     if (!sourceNode || !targetNode) return;
 
     try {
@@ -113,34 +119,36 @@ const NetworkGraph = ({ onPathResult }) => {
       });
 
       const pathResult = res.data;
-      onPathResult(pathResult);
+      onPathResult(pathResult);   // Send path details to parent
 
-      // Highlight the path on the graph
       highlightPath(pathResult.path);
     } catch (err) {
       alert('No path found: ' + (err.response?.data?.detail || err.message));
     }
   };
 
+  // Highlight path on the graph
   const highlightPath = (pathNames) => {
-    // Reset all highlights first
-    setNodes(nds =>
-      nds.map(n => ({
+    // Reset all highlights
+    setNodes((nds) =>
+      nds.map((n) => ({
         ...n,
         style: { ...n.style, background: '#f0f0f0' },
       }))
     );
-    setEdges(eds =>
-      eds.map(e => ({
+    setEdges((eds) =>
+      eds.map((e) => ({
         ...e,
         animated: false,
         style: { ...e.style, stroke: '#555' },
       }))
     );
 
-    // Map names to node IDs
+    // Map node names to IDs
     const nameToId = {};
-    nodes.forEach(n => { nameToId[n.data.label] = n.id; });
+    nodes.forEach((n) => {
+      nameToId[n.data.label] = n.id;
+    });
 
     const pathNodeIds = [];
     const pathEdgeIds = [];
@@ -150,22 +158,23 @@ const NetworkGraph = ({ onPathResult }) => {
       pathNodeIds.push(currentId);
       if (i < pathNames.length - 1) {
         const nextId = nameToId[pathNames[i + 1]];
-        // Highlight both possible edge directions (simplified)
-        pathEdgeIds.push(`e${currentId}-${nextId}`);
-        pathEdgeIds.push(`e${nextId}-${currentId}`);
+        // Add both directions because edges are bidirectional
+        pathEdgeIds.push(`e${currentId}-${nextId}`, `e${nextId}-${currentId}`);
       }
     }
 
-    // Apply highlight styles
-    setNodes(nds =>
-      nds.map(n => {
+    // Apply new styles
+    setNodes((nds) =>
+      nds.map((n) => {
         if (pathNodeIds.includes(n.id)) {
           return {
             ...n,
             style: {
               ...n.style,
-              background: n.id === selectedSource ? '#aaf' :
-                          n.id === selectedTarget ? '#faa' : '#ff9',
+              background:
+                n.id === selectedSource ? '#aaf' :
+                n.id === selectedTarget ? '#faa' :
+                '#ff9',
             },
           };
         }
@@ -173,8 +182,8 @@ const NetworkGraph = ({ onPathResult }) => {
       })
     );
 
-    setEdges(eds =>
-      eds.map(e => {
+    setEdges((eds) =>
+      eds.map((e) => {
         if (pathEdgeIds.includes(e.id)) {
           return {
             ...e,
@@ -189,18 +198,26 @@ const NetworkGraph = ({ onPathResult }) => {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Control bar */}
-      <div style={{ padding: 10, background: '#f8f8f8', borderBottom: '1px solid #ccc' }}>
+      <div style={{
+        padding: 10,
+        background: '#f8f8f8',
+        borderBottom: '1px solid #ccc',
+        display: 'flex',
+        gap: 8,
+        alignItems: 'center',
+      }}>
         <button onClick={loadGraph}>Reload Graph</button>
-        <button onClick={findPath} style={{ marginLeft: 10 }}>Find Attack Path</button>
-        <button onClick={resetSelection} style={{ marginLeft: 10 }}>Reset</button>
+        <button onClick={findPath}>Find Attack Path</button>
+        <button onClick={resetSelection}>Reset</button>
         <span style={{ marginLeft: 10 }}>
-          {selectedSource ? `Source: ${nodes.find(n => n.id === selectedSource)?.data?.label} → ` : ''}
-          {selectedTarget ? `Target: ${nodes.find(n => n.id === selectedTarget)?.data?.label}` : ''}
+          {selectedSource
+            ? `Source: ${nodes.find((n) => n.id === selectedSource)?.data?.label} → `
+            : ''}
+          {selectedTarget
+            ? `Target: ${nodes.find((n) => n.id === selectedTarget)?.data?.label}`
+            : ''}
         </span>
       </div>
-
-      {/* Graph area */}
       <div style={{ flex: 1 }}>
         <ReactFlow
           nodes={nodes}

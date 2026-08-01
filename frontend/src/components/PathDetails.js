@@ -11,6 +11,7 @@ const PathDetails = ({ pathResult }) => {
   const generateReport = async () => {
     setLoading(true);
     try {
+      // No /api prefix – the React proxy forwards /report to backend
       const res = await axios.post('/report', pathResult);
       setReport(res.data.report);
     } catch (err) {

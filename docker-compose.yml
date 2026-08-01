@@ -1,3 +1,4 @@
+version: "3.8"
 
 services:
   db:
@@ -7,31 +8,36 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: attack_sim
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ./backend
     container_name: attack_sim_backend
-    ports:
-      - "8000:8000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/attack_sim
-      GEMINI_API_KEY: ${GEMINI_API_KEY}   # from your .env file
-    # Optional: wait for db to be ready (add a script or use restart: on-failure)
-    restart: on-failure
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    ports:
+      - "8000:8000"
 
   frontend:
     build: ./frontend
     container_name: attack_sim_frontend
-    ports:
-      - "3000:80"
     depends_on:
       - backend
+    ports:
+      - "80:80"
+    # If you want to use port 3000 for frontend, change to "3000:80"
 
 volumes:
   pgdata:
