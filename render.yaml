@@ -2,15 +2,13 @@ databases:
   - name: db
     plan: free
     databaseName: attack_sim
-    user: postgres
-    password: postgres   # simple for demo
 
 services:
   # Backend API (FastAPI)
   - type: web
     name: backend
     runtime: docker
-    repo: https://github.com/aman16gh/Attack-Path-Simulator.git
+    repo: aman16gh/Attack-Path-Simulator
     branch: master
     rootDir: backend
     dockerfilePath: ./Dockerfile
@@ -20,16 +18,16 @@ services:
           name: db
           property: connectionString
       - key: GEMINI_API_KEY
-        sync: false   # set manually in Render dashboard
+        sync: false
 
   # Frontend (React + Nginx)
   - type: web
     name: frontend
     runtime: docker
-    repo: https://github.com/aman16gh/Attack-Path-Simulator.git
+    repo: aman16gh/Attack-Path-Simulator
     branch: master
     rootDir: frontend
     dockerfilePath: ./Dockerfile
     envVars:
       - key: BACKEND_URL
-        value: http://backend:8000   # not strictly needed but harmless
+        value: http://backend:8000
